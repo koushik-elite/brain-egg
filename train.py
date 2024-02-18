@@ -20,6 +20,7 @@ TARS = {'Seizure':0, 'LPD':1, 'GPD':2, 'LRDA':3, 'GRDA':4, 'Other':5}
 train = pd.read_parquet('dataset/train.parquet')
 print(train.head())
 FEATURES = train.columns[12:]
+print(train.loc[0, FEATURES].values)
 # for col in FEATURES:
 #     print(col)
 
