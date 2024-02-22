@@ -31,7 +31,7 @@ def convert_strings(df: pd.DataFrame) -> pd.DataFrame:
             df[col] = df[col].astype(new_dtype)
     return df
 
-train = pd.read_parquet('dataset/dataset.parquet')
+train = pd.read_parquet('dataset/train.parquet')
 print(train.head())
 
 cols_pred = []
@@ -41,19 +41,30 @@ for col in train.columns:
 
 print(cols_pred)
 
-case_ids = train["case_id"].unique()
+# case_ids = train["case_id"].unique()
 # case_ids_train, case_ids_test = train_test_split(case_ids, train_size=0.6, random_state=1)
 # case_ids_valid, case_ids_test = train_test_split(case_ids_test, train_size=0.5, random_state=1)
 
-X_train = train[cols_pred]
-y_train = train["target"]
+# X_train = train[cols_pred]
+# y_train = train["target"]
+train[cols_pred] = train[cols_pred].fillna(0)
+print(train.loc[0, cols_pred].values)
 
-print(X_train.loc[0].values)
+VER = 3
 
-for df in [X_train]:
-    df = convert_strings(df)
-
-print(X_train.loc[0].values)
+gkf = GroupKFold(n_splits=5)
+for i, (train_index, valid_index) in enumerate(gkf.split(train, train.target, train.case_id)):
+    model = CatBoostClassifier(task_type='GPU', loss_function='MultiClass')
+    train_pool = Pool(
+        data = train.loc[train_index, cols_pred],
+        label = train.loc[train_index, 'target'],
+    )
+    valid_pool = Pool(
+        data = train.loc[valid_index,cols_pred],
+        label = train.loc[valid_index, 'target'],
+    )
+    model.fit(train_pool, verbose=100, eval_set=valid_pool)
+    model.save_model(f'CAT_v{VER}_f{i}.cat')
 
 # gkf = GroupKFold(n_splits=5)
 # for i, (train_index, valid_index) in enumerate(gkf.split(train, train.target, train.case_id)):
